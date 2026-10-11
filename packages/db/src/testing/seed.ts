@@ -18,13 +18,20 @@ export const ids = {
   collectionHiddenB: "00000000-0000-4000-8000-0000000c0b02",
 } as const;
 
-const seedSql = `
+type StoreSlugs = { storeA: string; storeB: string };
+
+// SQL that creates two stores with a published and an unpublished slice of every store-owned
+// table. The slugs are a parameter so the live-database checks can use names that can never
+// collide with a real store.
+export const buildSeedSql = (
+  slugs: StoreSlugs = { storeA: "store-a", storeB: "store-b" },
+): string => `
 insert into auth.users (id) values
   ('${ids.ownerA}'), ('${ids.viewerA}'), ('${ids.ownerB}'), ('${ids.nobody}');
 
 insert into public.stores (id, slug, name, currency) values
-  ('${ids.storeA}', 'store-a', 'Store A', 'GBP'),
-  ('${ids.storeB}', 'store-b', 'Store B', 'GBP');
+  ('${ids.storeA}', '${slugs.storeA}', 'Store A', 'GBP'),
+  ('${ids.storeB}', '${slugs.storeB}', 'Store B', 'GBP');
 
 insert into public.operators (user_id, store_id, role) values
   ('${ids.ownerA}', '${ids.storeA}', 'owner'),
@@ -60,5 +67,5 @@ insert into public.product_collections (store_id, product_id, collection_id) val
 // Whenever a table with a store_id is added, add rows for both stores here: the tests fail if
 // a table is left empty, so they can never pass by checking nothing.
 export const seedTwoStores = async (db: PGlite): Promise<void> => {
-  await db.exec(seedSql);
+  await db.exec(buildSeedSql());
 };

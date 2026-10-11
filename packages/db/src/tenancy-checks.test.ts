@@ -66,6 +66,62 @@ describe("findTenancyViolations", () => {
     );
   });
 
+  it("flags functions that do not pin their search_path", async () => {
+    await db.exec(`
+      create function public.loose_path() returns int
+      language sql as 'select 1'
+    `);
+
+    const violations = await findTenancyViolations(queryRowsOf(db));
+    await db.exec("drop function public.loose_path()");
+
+    expect(violations).toContain("function loose_path: search_path is not pinned");
+  });
+
+  it("flags two permissive policies for the same role and command", async () => {
+    await db.exec(`
+      create table public.doubled (id int primary key, store_id uuid not null references public.stores (id));
+      create index doubled_store_id_idx on public.doubled (store_id);
+      alter table public.doubled enable row level security;
+      create policy first_read on public.doubled for select to authenticated using (true);
+      create policy second_read on public.doubled for select to authenticated using (true);
+    `);
+
+    const violations = await findTenancyViolations(queryRowsOf(db));
+    await db.exec("drop table public.doubled");
+
+    expect(violations).toContain(
+      "doubled (authenticated, SELECT): more than one permissive policy, merge them",
+    );
+  });
+
+  it("flags a foreign key with no covering index", async () => {
+    await db.exec(`
+      create table public.unindexed (id int primary key, store_id uuid not null references public.stores (id));
+      alter table public.unindexed enable row level security;
+    `);
+
+    const violations = await findTenancyViolations(queryRowsOf(db));
+    await db.exec("drop table public.unindexed");
+
+    expect(violations).toContain(
+      "unindexed.unindexed_store_id_fkey: foreign key has no covering index",
+    );
+  });
+
+  it("accepts a foreign key covered by a multi-column index that starts with its columns", async () => {
+    await db.exec(`
+      create table public.covered (id int primary key, store_id uuid not null references public.stores (id), slug text);
+      create unique index covered_store_slug_idx on public.covered (store_id, slug);
+      alter table public.covered enable row level security;
+    `);
+
+    const violations = await findTenancyViolations(queryRowsOf(db));
+    await db.exec("drop table public.covered");
+
+    expect(violations.filter((line) => line.startsWith("covered."))).toEqual([]);
+  });
+
   it("is clean again once the bad objects are removed", async () => {
     const violations = await findTenancyViolations(queryRowsOf(db));
 

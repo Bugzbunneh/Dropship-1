@@ -132,7 +132,7 @@ Each store declares, in typed and validated config: name and domain, currency, l
 4. A tracking sync job picks up the tracking number and sends the shipped email.
 5. Delivery is detected and the order closes, optionally triggering a review request.
 
-**Order states:** `pending_payment` → `paid` → `supplier_pending` → `supplier_ordered` → `shipped` → `delivered`
+**Order states:** `pending_payment` â†’ `paid` â†’ `supplier_pending` â†’ `supplier_ordered` â†’ `shipped` â†’ `delivered`
 
 **Exception states** (each raises an alert and appears in the exceptions inbox): `supplier_failed`, `out_of_stock`, `address_issue`, `refund_requested`, `refunded`, `disputed`, `delivery_overdue`.
 
@@ -156,13 +156,13 @@ Each phase ends with an exit criterion, so we know when it is actually done. The
 
 ### Phase 0: Foundations
 - [ ] Settle the open decisions due in this phase (hosting and the deployment model, see below)
-- [x] pnpm workspace monorepo with TypeScript, oxlint, Prettier and CI (typecheck, lint, format check, tests). The CI workflow is written and every step passes locally; it first runs on GitHub when this is pushed
+- [x] pnpm workspace monorepo with TypeScript, oxlint, Prettier and CI (typecheck, lint, format check, tests). CI passes on GitHub
 - [x] Store config schema and loader
 - [x] Initial schema, migrations and row-level security (`store_id` on every store-owned table), tested against an embedded Postgres
-- [ ] Supabase project created (free plan for development), migrations applied to it, and generated types (see `docs/phase-0-setup.md`)
+- [x] Supabase project `Dropship-1` (free plan, London) created, migrations applied, types generated, and the live database audited by Supabase's advisors plus our own structural and isolation checks. All driven by `pnpm db:*` scripts, see `docs/migrations.md`
 - [x] Tenant-isolation test harness, so every new table is checked from the start
 - [x] Storefront boots from a store config, with a verified revalidation round trip (`pnpm smoke`)
-- [ ] Storefront calling Supabase and Stripe in test mode, run locally
+- [x] Storefront calling Supabase and Stripe in test mode, run locally: a signed store-scoped token is accepted by the live API and scopes to one store, forged and expired tokens are refused, and the Stripe keys are verified as test-mode (`pnpm check:live`)
 - [ ] Storefront deployed to the host (deferred: Vercel comes later)
 - [ ] Staging and production environments (needs a domain and the host). Local development works today
 
@@ -265,6 +265,7 @@ Known trade-offs of the choices above. None block progress. Each has a trigger f
 | R9 | **5 working day delivery narrows suppliers** | Only UK or nearby EU stock qualifies, which means a smaller catalog and possibly thinner margins | Treat the limit as an experiment, measure delivery times per supplier, relax or tighten using real data | Phase 3 supplier selection, and after the first 50 orders |
 | R10 | **UK compliance** | VAT registration, consumer rights, UK GDPR/PECR and pet-product rules all apply | Accountant and solicitor before launch, Stripe Tax, policy templates | Before the pilot goes live |
 | R11 | **Deployment model: one deployment per store, or one for all** | Separate deployments isolate rollbacks but multiply builds, projects and settings. One deployment routed by hostname is simpler to run but a bad release hits every store | Start with a deployment per store, scripted in `create-store`. Revisit if the number of stores makes this a chore | At the third store |
+| R12 | **The storefront must sign its own database token** | Database isolation relies on a JWT carrying `store_id`, signed by the storefront server. Proven on 2026-10-11 with the project's legacy JWT secret: the live API accepts the token, scopes it to one store, and refuses wrong-key, expired and forged tokens. The risk that remains is Supabase retiring legacy keys in favour of asymmetric signing keys | Forward path: generate our own signing key (`supabase gen signing-key`) and import it in the dashboard, so the server keeps a key it can sign with. Only `mintStoreToken` and `app.current_store_id()` depend on how the claim is delivered. `pnpm check:live` re-proves it | When Supabase announces legacy key retirement, and whenever `pnpm check:live` fails |
 
 ## Open decisions
 
@@ -277,7 +278,7 @@ Known trade-offs of the choices above. None block progress. Each has a trigger f
 - **Delivery: 5 working days at most** (2026-10-11), as an experiment that is measured from day one. Read as order placed to delivered. See R9.
 - **Pilot niche: pet products** (2026-10-11). The exact products are chosen with the owner when we reach Phase 3.
 - **One Stripe account for now** (2026-10-11). See R5.
-- **Free Supabase plan during development** (2026-10-11). Free projects pause after a week of inactivity and have no place holding real customers or orders, so the project moves to Pro before the pilot goes live (R7).
+- **Free Supabase plan during development** (2026-10-11), project `Dropship-1` in London (eu-west-2). Migrations are managed through the CLI, see `docs/migrations.md`. Free projects pause after a week of inactivity and have no place holding real customers or orders, so the project moves to Pro before the pilot goes live (R7).
 - **Deployment to Vercel is deferred** (2026-10-11). Development runs locally until then.
 - **No deadlines** (2026-10-11). Correctness over speed, and the roadmap order stands.
 

@@ -7,11 +7,15 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "next typegen && tsc -p tsconfig.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:live": "vitest run --config vitest.live.config.ts"
   },
   "dependencies": {
     "@dropship/config": "workspace:*",
+    "@dropship/db": "workspace:^",
     "@dropship/stores": "workspace:*",
+    "@supabase/supabase-js": "^2.117.3",
+    "jose": "^6.2.12",
     "next": "16.4.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"

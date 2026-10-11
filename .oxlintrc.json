@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["react", "typescript", "oxc", "nextjs"],
-  "ignorePatterns": ["node_modules", ".next", "dist", "coverage"],
+  "ignorePatterns": ["node_modules", ".next", "dist", "coverage", "**/database.types.ts"],
   "rules": {
     "react/rules-of-hooks": "error",
     "react/function-component-definition": [

@@ -97,6 +97,58 @@ const securityDefinerFunctionsInPublic = async (query: QueryRows): Promise<strin
   return asNames(rows, "name");
 };
 
+// Functions in our schemas must pin search_path, otherwise a caller can change what the function
+// resolves names to (Supabase advisor 0011).
+const functionsWithMutableSearchPath = async (query: QueryRows): Promise<string[]> => {
+  const rows = await query(`
+    select p.proname as name
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname in ('app', 'public')
+      and not exists (
+        select 1 from unnest(coalesce(p.proconfig, array[]::text[])) setting
+        where setting like 'search_path=%'
+      )
+    order by p.proname
+  `);
+  return asNames(rows, "name");
+};
+
+// Two permissive policies for the same role and command are all evaluated for every row, so they
+// should be merged into one (Supabase advisor 0006). Returns "table (role, command)" labels.
+const overlappingPermissivePolicies = async (query: QueryRows): Promise<string[]> => {
+  const rows = await query(`
+    select tablename || ' (' || role || ', ' || cmd || ')' as name
+    from (
+      select tablename, cmd, unnest(roles)::text as role
+      from pg_policies
+      where schemaname = 'public' and permissive = 'PERMISSIVE'
+    ) expanded
+    group by tablename, cmd, role
+    having count(*) > 1
+    order by 1
+  `);
+  return asNames(rows, "name");
+};
+
+// A foreign key needs an index that starts with its columns, or deletes and joins on the parent
+// scan the whole child table (Supabase advisor 0001). Returns "table.constraint" labels.
+const foreignKeysWithoutIndex = async (query: QueryRows): Promise<string[]> => {
+  const rows = await query(`
+    select c.conrelid::regclass::text || '.' || c.conname as name
+    from pg_constraint c
+    where c.contype = 'f'
+      and c.connamespace = 'public'::regnamespace
+      and not exists (
+        select 1 from pg_index i
+        where i.indrelid = c.conrelid
+          and (string_to_array(i.indkey::text, ' ')::int2[])[1:cardinality(c.conkey)] = c.conkey
+      )
+    order by 1
+  `);
+  return asNames(rows, "name");
+};
+
 const describeAll = (names: string[], message: (name: string) => string): string[] =>
   names.map(message);
 
@@ -104,14 +156,18 @@ const describeAll = (names: string[], message: (name: string) => string): string
 export const findTenancyViolations = async (query: QueryRows): Promise<string[]> => {
   const tables = await storeOwnedTables(query);
 
-  const [noRls, noStoreId, noStoreFk, anonWrites, everyone, definers] = await Promise.all([
-    tablesWithoutRls(query),
-    tablesMissingNotNullStoreId(query, tables),
-    tablesMissingStoreForeignKey(query, tables),
-    tablesWithAnonymousWrites(query),
-    tablesGrantedToEveryone(query),
-    securityDefinerFunctionsInPublic(query),
-  ]);
+  const [noRls, noStoreId, noStoreFk, anonWrites, everyone, definers, mutable, overlap, noIndex] =
+    await Promise.all([
+      tablesWithoutRls(query),
+      tablesMissingNotNullStoreId(query, tables),
+      tablesMissingStoreForeignKey(query, tables),
+      tablesWithAnonymousWrites(query),
+      tablesGrantedToEveryone(query),
+      securityDefinerFunctionsInPublic(query),
+      functionsWithMutableSearchPath(query),
+      overlappingPermissivePolicies(query),
+      foreignKeysWithoutIndex(query),
+    ]);
 
   return [
     ...describeAll(noRls, (name) => `${name}: row-level security is not enabled`),
@@ -123,6 +179,9 @@ export const findTenancyViolations = async (query: QueryRows): Promise<string[]>
       definers,
       (name) => `function ${name}: security definer functions must not live in public`,
     ),
+    ...describeAll(mutable, (name) => `function ${name}: search_path is not pinned`),
+    ...describeAll(overlap, (name) => `${name}: more than one permissive policy, merge them`),
+    ...describeAll(noIndex, (name) => `${name}: foreign key has no covering index`),
   ];
 };
 

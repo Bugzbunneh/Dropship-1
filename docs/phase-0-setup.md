@@ -1,7 +1,4 @@
-# Phase 0 setup: what is done and what needs you
-
-Everything that can be built and verified without external accounts is done. The rest needs
-accounts or software that only the owner can set up.
+# Phase 0 setup: status and what still needs you
 
 ## Working locally
 
@@ -12,61 +9,80 @@ pnpm install
 pnpm check                          # typecheck, lint, format check, all tests
 STORE=pet-pilot pnpm build          # on Windows PowerShell: $env:STORE = "pet-pilot"; pnpm build
 pnpm smoke                          # boots the built storefront and checks it
+pnpm dev --filter @dropship/storefront   # or: cd apps/storefront && pnpm dev
 ```
 
-To run the storefront while developing:
+### Environment files
 
-```
-cd apps/storefront
-cp .env.example .env.local          # then fill in REVALIDATE_SECRET
-pnpm dev
-```
+All gitignored. Next.js loads both, and `.env.local` wins over `.env`.
+
+| File                         | Holds                                                                                                               |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `apps/storefront/.env`       | Your secrets: `SUPABASE_JWT_SIGNING_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`                             |
+| `apps/storefront/.env.local` | Values that are not secrets, plus a generated `REVALIDATE_SECRET`: the project URL, the publishable key, `STORE_ID` |
+
+`apps/storefront/.env.example` lists every variable. Put each comment on its own line: everything
+after the first `=` on a line is the value, and the app refuses a signing key that contains
+whitespace.
 
 ## What the checks cover
 
 - `packages/config`: the store config schema rejects bad values and applies defaults.
 - `stores`: every registered store loads and declares the slug it is registered under.
-- `packages/db`: migrations run against an embedded Postgres with a Supabase-style shim. Tests prove
-  one store can never read or write another's data, for every table that has a `store_id`.
-- `apps/storefront`: unit tests for theming, cache tags and the secret check.
+- `packages/db` (local, part of `pnpm test`): migrations run against an embedded Postgres with a
+  Supabase-style shim. Tests prove one store can never read or write another's data for every
+  table that has a `store_id`, and a structural checker enforces the tenancy rules.
+- `apps/storefront`: unit tests for theming, cache tags, the secret check, environment
+  validation and the store token.
 - `pnpm smoke`: boots the production build and checks the page, the theme, the locked-down
   revalidation endpoint, and that expiring a cache tag refreshes a cached value.
 
-## Needs you
+Live checks, which use real credentials and never run in CI:
 
-### 1. Accounts
+- `pnpm db:check-remote`: structural rules and isolation scenarios against the hosted database.
+  See `docs/migrations.md`.
+- `pnpm check:live`: the storefront's signed token against the live Supabase API, and the Stripe
+  keys against Stripe's test mode.
 
-| Account      | Why                                | Notes                                                                                                                                                  |
-| ------------ | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Supabase     | The shared database, auth and jobs | The free plan is fine for development. Free projects pause after a week idle and are not for real customers, so move to Pro before the pilot goes live |
-| Stripe       | Payments                           | Test mode is enough for Phase 0                                                                                                                        |
-| Vercel (Pro) | Hosting for the storefront         | Deferred until later. The free Hobby plan is non-commercial only                                                                                       |
-| A domain     | Staging and production hostnames   | Needed when the storefront is deployed                                                                                                                 |
+## Done
 
-### 2. Software for database work
+### The Supabase project
 
-The Supabase CLI, added as an npm dev dependency in the repo. According to Supabase's CLI docs,
-`supabase db push` (apply migrations to the hosted project) does not need Docker, and
-`supabase gen types --project-id <ref>` reads the hosted project's schema. Docker Desktop is only
-needed for a local Supabase stack (`supabase start`) and for `supabase db pull`. It is optional.
+- Project `Dropship-1`, London (eu-west-2), free plan, linked to this repo.
+- Both migrations applied and recorded in the project's history.
+- Types generated into `packages/db/src/database.types.ts`.
+- Supabase's security advisors report no findings. The performance advisors report only INFO
+  notes about indexes that are unused because the database has no traffic yet.
+- The `pet-pilot` store row exists (`pnpm store:provision pet-pilot`), and its id is `STORE_ID`.
+- Everything is managed through `pnpm db:*` scripts. See `docs/migrations.md`.
 
-The tenant-isolation tests currently run on an embedded Postgres (PGlite). That is real Postgres,
-so the row-level security behaviour is genuine, but it is not Supabase itself. Once the hosted
-project exists, the same structural checks can run against it.
+### The storefront's database token (README risk R12)
 
-### 3. One assumption to verify first
+The storefront signs a short-lived token carrying `store_id` with the project's legacy JWT
+secret, and Supabase's row-level security shows it only that store's published rows. Proven live:
 
-The storefront's database isolation relies on a JWT that carries a `store_id` claim. The storefront
-server signs a short-lived token per request (or per short window) with the project's JWT signing
-key, and the row-level security policies read the claim. This is the standard custom-claims pattern,
-but Supabase has been moving projects to asymmetric signing keys, where the private key is not
-available to sign with. Before building on this:
+- the API accepts the token and shows the storefront its own store, and only that,
+- a token for another store sees nothing, and so does the publishable key alone,
+- a token signed with the wrong key, or an expired one, gets a 401,
+- the token cannot write.
 
-1. Create the Supabase project.
-2. Check which JWT signing keys it uses and whether a server can mint tokens its API will accept.
-3. If not, fall back to a Postgres function that sets the store from a verified secret, or a
-   per-store database role. The policies only depend on `app.current_store_id()`, so only that one
-   function would change.
+Supabase is retiring legacy keys over time. The forward path is to generate our own signing key
+(`supabase gen signing-key`) and import it in the dashboard, so the server keeps a key it can sign
+with. Only `mintStoreToken` and `app.current_store_id()` depend on how the claim is delivered.
+
+### Stripe (test mode)
+
+Both keys are test-mode keys, and Stripe accepts the secret key and answers in test mode. Nothing
+else is built on Stripe yet: checkout and the webhook are Phase 2, and `STRIPE_WEBHOOK_SECRET` is
+not needed until then.
+
+## Still needs you
+
+| Item         | Why                              | Notes                                                         |
+| ------------ | -------------------------------- | ------------------------------------------------------------- |
+| Vercel (Pro) | Hosting for the storefront       | Deferred. The free Hobby plan is non-commercial only          |
+| A domain     | Staging and production hostnames | Needed when the storefront is deployed                        |
+| Supabase Pro | Live customers and orders        | Free projects pause after a week idle. Do this before go-live |
 
 ## Decisions still open for this phase
 

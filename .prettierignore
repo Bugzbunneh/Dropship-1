@@ -4,6 +4,7 @@ dist
 coverage
 pnpm-lock.yaml
 supabase/migrations
+packages/db/src/database.types.ts
 # Prettier pads every cell of a markdown table to the widest one, which makes the README's risk
 # table unreadable in source.
 README.md
