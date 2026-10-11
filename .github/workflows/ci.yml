@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  # Every branch push, so a result arrives without opening a pull request first.
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Which store config the storefront build and smoke test use.
+      STORE: pet-pilot
+    steps:
+      - uses: actions/checkout@v4
+
+      # The pnpm version comes from "packageManager" in package.json.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Format check
+        run: pnpm format:check
+
+      # Includes the tenant-isolation tests, which run migrations against an embedded Postgres.
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+      # Boots the built storefront from its store config and exercises the revalidation round trip.
+      - name: Smoke test
+        run: pnpm smoke

@@ -1,0 +1,25 @@
+{
+  "name": "dropship",
+  "private": true,
+  "version": "0.0.0",
+  "packageManager": "pnpm@9.12.1",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "typecheck": "pnpm -r --if-present typecheck",
+    "lint": "oxlint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "pnpm -r --if-present test",
+    "build": "pnpm -r --if-present build",
+    "smoke": "node scripts/smoke-storefront.mjs",
+    "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "oxlint": "^1.87.0",
+    "prettier": "^3.9.10",
+    "typescript": "~6.0.3"
+  }
+}
