@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+/*
+ * Each store's theme arrives as --store-* custom properties set on <html> by the root layout.
+ * These tokens expose them as Tailwind utilities (bg-primary, text-foreground, font-heading...).
+ */
+@theme inline {
+  --color-background: var(--store-background);
+  --color-foreground: var(--store-foreground);
+  --color-primary: var(--store-primary);
+  --color-primary-foreground: var(--store-primary-foreground);
+  --color-accent: var(--store-accent);
+  --color-muted: var(--store-muted);
+  --font-heading: var(--store-font-heading);
+  --font-body: var(--store-font-body);
+  --radius-store: var(--store-radius);
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-body);
+}

@@ -1,0 +1,39 @@
+{
+  "name": "dropship",
+  "private": true,
+  "version": "0.0.0",
+  "packageManager": "pnpm@9.12.1",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "typecheck": "pnpm -r --if-present typecheck",
+    "lint": "oxlint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "pnpm -r --if-present test",
+    "build": "pnpm -r --if-present build",
+    "smoke": "node scripts/smoke-storefront.mjs",
+    "store:provision": "tsx scripts/provision-store.ts",
+    "check:live": "pnpm --filter @dropship/storefront test:live",
+    "db:new": "supabase migration new",
+    "db:status": "supabase migration list",
+    "db:dry-run": "supabase db push --dry-run",
+    "db:push": "supabase db push",
+    "db:types": "supabase gen types typescript --linked --schema public > packages/db/src/database.types.ts",
+    "db:advisors": "supabase db advisors --linked --level warn --fail-on warn",
+    "db:check-remote": "pnpm --filter @dropship/db test:remote",
+    "db:sync": "pnpm db:push && pnpm db:types && pnpm db:advisors && pnpm db:check-remote",
+    "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test"
+  },
+  "devDependencies": {
+    "@dropship/config": "workspace:^",
+    "@dropship/stores": "workspace:^",
+    "@types/node": "^24.19.2",
+    "oxlint": "^1.87.0",
+    "prettier": "^3.9.10",
+    "supabase": "^2.120.0",
+    "tsx": "^4.23.15",
+    "typescript": "~6.0.3"
+  }
+}
