@@ -177,7 +177,7 @@ describe("writes", () => {
   // No `returning` here on purpose: returning rows also checks the select policies, which would
   // let a broken insert policy slip through unnoticed.
   const insertProduct = (storeId: string) =>
-    `insert into public.products (store_id, slug, title) values ('${storeId}', 'new-thing', 'New thing')`;
+    `insert into public.products (store_id, slug, title, department) values ('${storeId}', 'new-thing', 'New thing', 'dogs')`;
 
   it("lets an operator write to their own store", async () => {
     const rows = await rowsAs(db, ownerA, `${insertProduct(ids.storeA)} returning id`);

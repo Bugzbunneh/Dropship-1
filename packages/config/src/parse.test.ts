@@ -17,9 +17,27 @@ const validInput: StoreConfigInput = {
       primaryForeground: "#ffffff",
       accent: "#f4a259",
       muted: "#f1f1f1",
+      surface: "#f6f6f6",
+      emphasis: "#084c38",
+      sale: "#b7084e",
     },
-    fonts: { heading: "Inter", body: "Inter" },
+    fonts: { heading: "Fraunces", body: "Nunito Sans" },
   },
+  departments: [
+    {
+      slug: "dogs",
+      name: "Dogs",
+      tagline: "For dogs",
+      colours: {
+        primary: "#f8b036",
+        primaryForeground: "#2b2112",
+        accent: "#c96f00",
+        surface: "#fff1d6",
+        emphasis: "#8a5300",
+      },
+    },
+  ],
+  home: { heading: "Welcome", subheading: "Things for pets" },
   email: { fromName: "Test Store", fromAddress: "hello@test-store.example.com" },
 };
 
@@ -32,6 +50,29 @@ describe("parseStoreConfig", () => {
     expect(config.stripe.secretKeyEnv).toBe("STRIPE_SECRET_KEY");
     expect(config.theme.radius).toBe("md");
     expect(config.navigation).toEqual([]);
+    expect(config.shipping).toEqual({ flatRateMinor: 399, freeThresholdMinor: 3500 });
+    expect(config.business).toEqual({});
+  });
+
+  it("rejects a department slug that would shadow an app route", () => {
+    const [dogs] = validInput.departments;
+    const attempt = () =>
+      parseStoreConfig({ ...validInput, departments: [{ ...dogs!, slug: "cart" }] });
+
+    expect(attempt).toThrow(/already used by the app/);
+  });
+
+  it("rejects duplicate department slugs", () => {
+    const [dogs] = validInput.departments;
+    const attempt = () => parseStoreConfig({ ...validInput, departments: [dogs!, dogs!] });
+
+    expect(attempt).toThrow(/department slugs must be unique/);
+  });
+
+  it("requires at least one department", () => {
+    const attempt = () => parseStoreConfig({ ...validInput, departments: [] });
+
+    expect(attempt).toThrow(/departments/);
   });
 
   it("keeps explicit values over defaults", () => {
@@ -81,7 +122,10 @@ describe("parseStoreConfig", () => {
     const attempt = () =>
       parseStoreConfig({
         ...validInput,
-        theme: { ...validInput.theme, fonts: { heading: "Inter; color: red", body: "Inter" } },
+        theme: {
+          ...validInput.theme,
+          fonts: { heading: "Fraunces; color: red", body: "Nunito Sans" },
+        },
       });
 
     expect(attempt).toThrow(/theme\.fonts\.heading/);

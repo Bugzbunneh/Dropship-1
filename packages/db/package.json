@@ -12,6 +12,9 @@
     "test": "vitest run",
     "test:remote": "vitest run --config vitest.remote.config.ts"
   },
+  "dependencies": {
+    "@dropship/stores": "workspace:*"
+  },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",
     "vitest": "^5.0.3"

@@ -17,6 +17,7 @@ export type Database = {
       collections: {
         Row: {
           created_at: string
+          department: string
           description: string | null
           id: string
           is_published: boolean
@@ -24,9 +25,11 @@ export type Database = {
           sort_order: number
           store_id: string
           title: string
+          updated_at: string
         }
         Insert: {
           created_at?: string
+          department: string
           description?: string | null
           id?: string
           is_published?: boolean
@@ -34,9 +37,11 @@ export type Database = {
           sort_order?: number
           store_id: string
           title: string
+          updated_at?: string
         }
         Update: {
           created_at?: string
+          department?: string
           description?: string | null
           id?: string
           is_published?: boolean
@@ -44,6 +49,7 @@ export type Database = {
           sort_order?: number
           store_id?: string
           title?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -127,33 +133,102 @@ export type Database = {
           },
         ]
       }
+      product_images: {
+        Row: {
+          alt: string
+          created_at: string
+          height: number
+          id: string
+          path: string
+          position: number
+          product_id: string
+          store_id: string
+          width: number
+        }
+        Insert: {
+          alt: string
+          created_at?: string
+          height: number
+          id?: string
+          path: string
+          position?: number
+          product_id: string
+          store_id: string
+          width: number
+        }
+        Update: {
+          alt?: string
+          created_at?: string
+          height?: number
+          id?: string
+          path?: string
+          position?: number
+          product_id?: string
+          store_id?: string
+          width?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_images_product_id_store_id_fkey"
+            columns: ["product_id", "store_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id", "store_id"]
+          },
+          {
+            foreignKeyName: "product_images_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
+          brand: string | null
           created_at: string
+          department: string
           description: string | null
           id: string
+          is_featured: boolean
           slug: string
           status: string
           store_id: string
+          summary: string | null
+          tags: string[]
           title: string
+          updated_at: string
         }
         Insert: {
+          brand?: string | null
           created_at?: string
+          department: string
           description?: string | null
           id?: string
+          is_featured?: boolean
           slug: string
           status?: string
           store_id: string
+          summary?: string | null
+          tags?: string[]
           title: string
+          updated_at?: string
         }
         Update: {
+          brand?: string | null
           created_at?: string
+          department?: string
           description?: string | null
           id?: string
+          is_featured?: boolean
           slug?: string
           status?: string
           store_id?: string
+          summary?: string | null
+          tags?: string[]
           title?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -191,10 +266,12 @@ export type Database = {
       }
       variants: {
         Row: {
+          compare_at_price_minor: number | null
           created_at: string
           currency: string
           id: string
           is_available: boolean
+          options: Json
           position: number
           price_minor: number
           product_id: string
@@ -203,10 +280,12 @@ export type Database = {
           title: string
         }
         Insert: {
+          compare_at_price_minor?: number | null
           created_at?: string
           currency: string
           id?: string
           is_available?: boolean
+          options?: Json
           position?: number
           price_minor: number
           product_id: string
@@ -215,10 +294,12 @@ export type Database = {
           title: string
         }
         Update: {
+          compare_at_price_minor?: number | null
           created_at?: string
           currency?: string
           id?: string
           is_available?: boolean
+          options?: Json
           position?: number
           price_minor?: number
           product_id?: string

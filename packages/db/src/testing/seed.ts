@@ -38,23 +38,29 @@ insert into public.operators (user_id, store_id, role) values
   ('${ids.viewerA}', '${ids.storeA}', 'viewer'),
   ('${ids.ownerB}', '${ids.storeB}', 'owner');
 
-insert into public.collections (id, store_id, slug, title, is_published) values
-  ('${ids.collectionPublishedA}', '${ids.storeA}', 'dogs', 'Dogs', true),
-  ('${ids.collectionHiddenA}', '${ids.storeA}', 'secret', 'Secret', false),
-  ('${ids.collectionPublishedB}', '${ids.storeB}', 'cats', 'Cats', true),
-  ('${ids.collectionHiddenB}', '${ids.storeB}', 'secret', 'Secret', false);
+insert into public.collections (id, store_id, slug, title, department, is_published) values
+  ('${ids.collectionPublishedA}', '${ids.storeA}', 'dogs', 'Dogs', 'dogs', true),
+  ('${ids.collectionHiddenA}', '${ids.storeA}', 'secret', 'Secret', 'dogs', false),
+  ('${ids.collectionPublishedB}', '${ids.storeB}', 'cats', 'Cats', 'cats', true),
+  ('${ids.collectionHiddenB}', '${ids.storeB}', 'secret', 'Secret', 'cats', false);
 
-insert into public.products (id, store_id, slug, title, status) values
-  ('${ids.productActiveA}', '${ids.storeA}', 'dog-bed', 'Dog bed', 'active'),
-  ('${ids.productDraftA}', '${ids.storeA}', 'dog-coat', 'Dog coat', 'draft'),
-  ('${ids.productActiveB}', '${ids.storeB}', 'cat-tree', 'Cat tree', 'active'),
-  ('${ids.productDraftB}', '${ids.storeB}', 'cat-bowl', 'Cat bowl', 'draft');
+insert into public.products (id, store_id, slug, title, department, status) values
+  ('${ids.productActiveA}', '${ids.storeA}', 'dog-bed', 'Dog bed', 'dogs', 'active'),
+  ('${ids.productDraftA}', '${ids.storeA}', 'dog-coat', 'Dog coat', 'dogs', 'draft'),
+  ('${ids.productActiveB}', '${ids.storeB}', 'cat-tree', 'Cat tree', 'cats', 'active'),
+  ('${ids.productDraftB}', '${ids.storeB}', 'cat-bowl', 'Cat bowl', 'cats', 'draft');
 
 insert into public.variants (store_id, product_id, sku, title, price_minor, currency) values
   ('${ids.storeA}', '${ids.productActiveA}', 'A-BED-1', 'Medium', 2999, 'GBP'),
   ('${ids.storeA}', '${ids.productDraftA}', 'A-COAT-1', 'Small', 1999, 'GBP'),
   ('${ids.storeB}', '${ids.productActiveB}', 'B-TREE-1', 'Large', 5999, 'GBP'),
   ('${ids.storeB}', '${ids.productDraftB}', 'B-BOWL-1', 'Steel', 899, 'GBP');
+
+insert into public.product_images (store_id, product_id, path, alt, width, height) values
+  ('${ids.storeA}', '${ids.productActiveA}', '/placeholder.svg?t=a-bed', 'Dog bed', 800, 800),
+  ('${ids.storeA}', '${ids.productDraftA}', '/placeholder.svg?t=a-coat', 'Dog coat', 800, 800),
+  ('${ids.storeB}', '${ids.productActiveB}', '/placeholder.svg?t=b-tree', 'Cat tree', 800, 800),
+  ('${ids.storeB}', '${ids.productDraftB}', '/placeholder.svg?t=b-bowl', 'Cat bowl', 800, 800);
 
 insert into public.product_collections (store_id, product_id, collection_id) values
   ('${ids.storeA}', '${ids.productActiveA}', '${ids.collectionPublishedA}'),

@@ -7,11 +7,9 @@
 // config cannot drift. Safe to run again: it updates the existing row and keeps its id.
 // This is the first piece of the Phase 6 create-store tool.
 
-import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import path from "node:path";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { loadStoreConfig, storeSlugs } from "@dropship/stores";
+import { runLinkedSql } from "./lib/linked-sql";
 
 const quoteLiteral = (value: string): string => `'${value.replaceAll("'", "''")}'`;
 
@@ -25,22 +23,6 @@ const readArguments = (): { slug: string; envFile: string | undefined } => {
   const envFlagIndex = rest.indexOf("--env-file");
   const envFile = envFlagIndex >= 0 ? rest[envFlagIndex + 1] : undefined;
   return { slug, envFile };
-};
-
-const runSql = (sql: string): string => {
-  const scratchDirectory = mkdtempSync(path.join(tmpdir(), "dropship-provision-"));
-  try {
-    const sqlFile = path.join(scratchDirectory, "provision.sql");
-    writeFileSync(sqlFile, sql);
-    const command = `pnpm exec supabase db query --linked --file "${sqlFile}"`;
-    const result = spawnSync(command, { encoding: "utf8", shell: true });
-    if (result.status !== 0) {
-      throw new Error(`Supabase query failed: ${result.stdout}${result.stderr}`);
-    }
-    return result.stdout;
-  } finally {
-    rmSync(scratchDirectory, { recursive: true, force: true });
-  }
 };
 
 // Sets NAME=value in an env file, replacing an existing NAME line or appending one.
@@ -71,7 +53,7 @@ const main = async (): Promise<void> => {
     on conflict (slug) do update set name = excluded.name, currency = excluded.currency
     returning id::text as id;
   `;
-  const output = runSql(sql);
+  const output = runLinkedSql(sql);
   const parsed = JSON.parse(output) as { rows: { id: string }[] };
   const storeId = parsed.rows[0]?.id;
   if (!storeId) {

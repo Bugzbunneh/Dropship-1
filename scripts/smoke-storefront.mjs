@@ -1,7 +1,9 @@
 // Starts the built storefront and checks the things that must hold before a deployment is trusted:
-// the store config loads, the theme reaches the page, the revalidation endpoint is locked down,
-// and expiring a cache tag really refreshes a cached value (the round trip that price and stock
-// syncs depend on). Run `pnpm build` first. Re-run after every Next.js upgrade (README risk R1).
+// the store config loads, the theme (base and per-pet) reaches the page, unknown addresses answer
+// 404, the revalidation endpoint is locked down, and expiring a cache tag really refreshes a
+// cached value (the round trip that price and stock syncs depend on). It serves the offline demo
+// catalog, so it needs no database or credentials. Run `pnpm build` first. Re-run after every
+// Next.js upgrade (README risk R1).
 
 import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
@@ -67,8 +69,22 @@ const runChecks = async () => {
   const html = await homePage.text();
   check("home page responds 200", homePage.status === 200, String(homePage.status));
   check("home page shows the store name", html.includes("Pilot Pets"));
-  check("home page carries the store theme", html.includes("--store-primary:#2f6f5e"));
+  check("home page carries the store theme", html.includes("--store-primary:#35302B"));
   check("home page uses the store locale", html.includes('lang="en-GB"'));
+
+  const dogsHtml = await (await fetch(`${baseUrl}/dogs`)).text();
+  check("dogs section has its own colour", dogsHtml.includes("--store-primary:#F8B036"));
+  const catsHtml = await (await fetch(`${baseUrl}/cats`)).text();
+  check("cats section has its own colour", catsHtml.includes("--store-primary:#00808C"));
+
+  const unknown = await fetch(`${baseUrl}/no-such-page`);
+  check("an unknown address answers 404", unknown.status === 404, String(unknown.status));
+  const unknownProduct = await fetch(`${baseUrl}/products/no-such-product`);
+  check(
+    "an unknown product answers 404",
+    unknownProduct.status === 404,
+    String(unknownProduct.status),
+  );
 
   const noSecret = await postRevalidate({}, { tags: ["probe:revalidation"] });
   check("revalidate rejects a request with no secret", noSecret.status === 401);
@@ -103,11 +119,12 @@ const runChecks = async () => {
 };
 
 const startServer = () =>
-  spawn(process.execPath, [nextBinary, "start", "-p", port, "-H", "127.0.0.1"], {
+  spawn(process.execPath, [nextBinary, "start", "-p", port], {
     cwd: storefrontDirectory,
     env: {
       ...process.env,
       STORE: storeSlug,
+      CATALOG_SOURCE: "fixtures",
       REVALIDATE_SECRET: revalidateSecret,
       ENABLE_PROBE: "true",
     },

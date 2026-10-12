@@ -39,7 +39,7 @@ const listColumn = (table: string, column: string): string =>
   `select coalesce(string_agg(${column}, ',' order by ${column}), '') into result from public.${table};`;
 
 const insertProduct = (storeId: string): string =>
-  `insert into public.products (store_id, slug, title) values ('${storeId}', 'zz-new', 'New'); result := 'inserted';`;
+  `insert into public.products (store_id, slug, title, department) values ('${storeId}', 'zz-new', 'New', 'dogs'); result := 'inserted';`;
 
 const countUpdated = (productId: string): string => `
   with changed as (
