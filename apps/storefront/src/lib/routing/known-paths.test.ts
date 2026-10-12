@@ -36,6 +36,16 @@ describe("isKnownPath", () => {
     expect(isKnownPath("/products", knowledge)).toBe(false);
   });
 
+  it("knows the checkout and order pages", () => {
+    expect(isKnownPath("/checkout/success", knowledge)).toBe(true);
+    expect(isKnownPath("/orders/lookup", knowledge)).toBe(true);
+    // an order page is addressed by order number, which the page itself checks
+    expect(isKnownPath("/orders/PP-7K3M-9Q2X", knowledge)).toBe(true);
+    expect(isKnownPath("/orders", knowledge)).toBe(false);
+    expect(isKnownPath("/orders/PP-7K3M-9Q2X/extra", knowledge)).toBe(false);
+    expect(isKnownPath("/checkout", knowledge)).toBe(false);
+  });
+
   it("rejects unknown pets, paths that are too deep, and nonsense", () => {
     expect(isKnownPath("/birds", knowledge)).toBe(false);
     expect(isKnownPath("/dogs/dog-beds/extra", knowledge)).toBe(false);

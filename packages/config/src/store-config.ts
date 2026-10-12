@@ -60,9 +60,11 @@ const themeSchema = z.object({
 const RESERVED_PATH_SEGMENTS = [
   "api",
   "cart",
+  "checkout",
   "contact",
   "delivery",
   "faq",
+  "orders",
   "placeholder",
   "privacy",
   "products",
@@ -106,6 +108,17 @@ const shippingSchema = z
     freeThresholdMinor: z.number().int().min(0).default(3500),
   })
   .default({ flatRateMinor: 399, freeThresholdMinor: 3500 });
+
+// UK VAT. Prices always include VAT (consumer prices must). While the business is not registered
+// nothing is recorded; once registered, the VAT inside each order total is worked out at this rate
+// (basis points: 2000 is the 20% standard rate) and shown on receipts. Flip `vatRegistered` only
+// after registering with HMRC (README risk R10).
+const taxSchema = z
+  .object({
+    vatRegistered: z.boolean().default(false),
+    vatRateBps: z.number().int().min(0).max(10_000).default(2000),
+  })
+  .default({ vatRegistered: false, vatRateBps: 2000 });
 
 // Who is selling. Needed on policy pages and in the footer; each field is shown only when set,
 // and the policy pages mark anything still missing so it cannot be launched by accident.
@@ -203,6 +216,7 @@ export const storeConfigSchema = z
     // Secondary links shown in the footer's help column.
     navigation: z.array(navigationItemSchema).default([]),
     shipping: shippingSchema,
+    tax: taxSchema,
     business: businessSchema,
     supplierSources: z.array(supplierSourceSchema).default([]),
     pricingRules: pricingRulesSchema,

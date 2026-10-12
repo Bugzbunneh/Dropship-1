@@ -17,6 +17,8 @@
     "e2e": "pnpm --filter @dropship/storefront e2e",
     "store:provision": "tsx scripts/provision-store.ts",
     "store:seed": "tsx scripts/seed-store.ts",
+    "order:show": "tsx scripts/order.ts show",
+    "order:advance": "tsx scripts/order.ts advance",
     "check:live": "pnpm --filter @dropship/storefront test:live",
     "db:new": "supabase migration new",
     "db:status": "supabase migration list",
@@ -30,6 +32,7 @@
   },
   "devDependencies": {
     "@dropship/config": "workspace:^",
+    "@dropship/core": "workspace:^",
     "@dropship/db": "workspace:^",
     "@dropship/stores": "workspace:^",
     "@types/node": "^24.19.2",

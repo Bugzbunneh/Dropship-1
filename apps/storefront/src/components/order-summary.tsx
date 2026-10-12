@@ -1,12 +1,10 @@
 "use client";
 
-import { Lock } from "lucide-react";
 import type { CartSummary } from "@/lib/cart/totals";
-import { buttonClasses } from "@/lib/ui";
+import { CheckoutButton } from "./checkout-button";
 import { useMoney } from "./store-settings";
 
-// Subtotal, delivery and total, with the checkout button. Checkout itself arrives in Phase 2, so
-// for now the button says so rather than pretending: nothing here takes an order or a payment.
+// Subtotal, delivery and total, with the checkout button.
 export const OrderSummary = ({ summary }: { summary: CartSummary }) => {
   const format = useMoney();
 
@@ -37,18 +35,7 @@ export const OrderSummary = ({ summary }: { summary: CartSummary }) => {
         </div>
       </dl>
 
-      <button
-        type="button"
-        disabled
-        className={buttonClasses("dark", "lg", "w-full")}
-        aria-describedby="checkout-note"
-      >
-        <Lock aria-hidden="true" className="h-4 w-4" />
-        Checkout
-      </button>
-      <p id="checkout-note" className="text-center text-sm text-foreground/70">
-        Secure checkout is coming soon. Your cart is saved on this device.
-      </p>
+      <CheckoutButton summary={summary} />
     </div>
   );
 };

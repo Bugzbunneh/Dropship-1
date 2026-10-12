@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { CartPageContent } from "@/components/cart-page-content";
+import { CheckoutCancelledNotice } from "@/components/checkout-cancelled-notice";
 import { ProductGrid } from "@/components/product-grid";
 import { SectionHeading } from "@/components/section-heading";
 import { getSnapshot } from "@/lib/catalog";
@@ -25,6 +27,9 @@ const CartPage = async () => {
         className="mb-4"
       />
       <h1 className="mb-8 text-4xl font-bold">Your cart</h1>
+      <Suspense fallback={null}>
+        <CheckoutCancelledNotice />
+      </Suspense>
       <CartPageContent />
 
       <section className="mt-20" aria-labelledby="cart-suggestions">

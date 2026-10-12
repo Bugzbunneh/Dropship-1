@@ -94,13 +94,26 @@ test.describe("cart", () => {
     ).toBeVisible();
   });
 
-  test("checkout is honest that it is not live yet", async ({ page }) => {
+  test("the demo catalog explains that it cannot take payments", async ({ page }) => {
     await addLeadFromCard(page);
+    const drawer = page.getByTestId("cart-drawer");
 
-    await expect(
-      page.getByTestId("cart-drawer").getByRole("button", { name: "Checkout" }),
-    ).toBeDisabled();
-    await expect(page.getByTestId("cart-drawer")).toContainText("Secure checkout is coming soon");
+    const checkout = drawer.getByRole("button", { name: "Checkout securely" });
+    await expect(checkout).toBeEnabled();
+    await checkout.click();
+
+    // This run serves the offline demo catalog, which has no database to record orders in. The
+    // real payment flow is checked against Stripe's test mode by `pnpm check:live`.
+    await expect(drawer.getByRole("alert")).toContainText(
+      "isn’t switched on for this demo catalog",
+    );
+    await expect(checkout).toBeEnabled();
+  });
+
+  test("the cart says nothing has been charged after backing out of payment", async ({ page }) => {
+    await page.goto("/cart?checkout=cancelled");
+
+    await expect(page.getByTestId("checkout-cancelled")).toContainText("nothing has been charged");
   });
 
   test("a corrupted saved cart is ignored rather than breaking the site", async ({ page }) => {

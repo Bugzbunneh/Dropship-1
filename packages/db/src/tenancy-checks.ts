@@ -7,6 +7,17 @@ export type QueryRows = (sql: string) => Promise<Record<string, unknown>[]>;
 
 const TABLES_WITHOUT_STORE_ID = ["stores"];
 
+// Tables that hold customers' names, addresses, emails or payment events. The storefront's
+// anonymous role must never be able to read these, whatever their policies say.
+const CUSTOMER_DATA_TABLES = [
+  "orders",
+  "order_items",
+  "order_events",
+  "stripe_events",
+  "email_events",
+  "shipments",
+];
+
 const asNames = (rows: Record<string, unknown>[], column: string): string[] =>
   rows.map((row) => String(row[column]));
 
@@ -149,6 +160,41 @@ const foreignKeysWithoutIndex = async (query: QueryRows): Promise<string[]> => {
   return asNames(rows, "name");
 };
 
+// A customer-data table the anon role holds any privilege on (its policies are then the only
+// thing between a visitor and everyone's addresses).
+const customerTablesOpenToAnon = async (query: QueryRows): Promise<string[]> => {
+  const list = CUSTOMER_DATA_TABLES.map((name) => `'${name}'`).join(", ");
+  const rows = await query(`
+    select c.relname as name
+    from pg_class c
+    join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'public' and c.relkind in ('r', 'p') and c.relname in (${list})
+      and (
+        has_table_privilege('anon', c.oid, 'SELECT')
+        or has_any_column_privilege('anon', c.oid, 'SELECT')
+      )
+    order by c.relname
+  `);
+  return asNames(rows, "name");
+};
+
+// The storefront server's role may only ever touch its own store's rows, so every policy for it
+// has to mention the token's store. Returns "table (policy)" labels.
+const serverPoliciesWithoutStoreScope = async (query: QueryRows): Promise<string[]> => {
+  const rows = await query(`
+    select tablename || ' (' || policyname || ')' as name
+    from pg_policies
+    where schemaname = 'public'
+      and 'storefront_server' = any (roles)
+      and (
+        coalesce(qual, '') not like '%current_store_id%'
+          and coalesce(with_check, '') not like '%current_store_id%'
+      )
+    order by 1
+  `);
+  return asNames(rows, "name");
+};
+
 const describeAll = (names: string[], message: (name: string) => string): string[] =>
   names.map(message);
 
@@ -156,18 +202,31 @@ const describeAll = (names: string[], message: (name: string) => string): string
 export const findTenancyViolations = async (query: QueryRows): Promise<string[]> => {
   const tables = await storeOwnedTables(query);
 
-  const [noRls, noStoreId, noStoreFk, anonWrites, everyone, definers, mutable, overlap, noIndex] =
-    await Promise.all([
-      tablesWithoutRls(query),
-      tablesMissingNotNullStoreId(query, tables),
-      tablesMissingStoreForeignKey(query, tables),
-      tablesWithAnonymousWrites(query),
-      tablesGrantedToEveryone(query),
-      securityDefinerFunctionsInPublic(query),
-      functionsWithMutableSearchPath(query),
-      overlappingPermissivePolicies(query),
-      foreignKeysWithoutIndex(query),
-    ]);
+  const [
+    noRls,
+    noStoreId,
+    noStoreFk,
+    anonWrites,
+    everyone,
+    definers,
+    mutable,
+    overlap,
+    noIndex,
+    customerOpen,
+    unscoped,
+  ] = await Promise.all([
+    tablesWithoutRls(query),
+    tablesMissingNotNullStoreId(query, tables),
+    tablesMissingStoreForeignKey(query, tables),
+    tablesWithAnonymousWrites(query),
+    tablesGrantedToEveryone(query),
+    securityDefinerFunctionsInPublic(query),
+    functionsWithMutableSearchPath(query),
+    overlappingPermissivePolicies(query),
+    foreignKeysWithoutIndex(query),
+    customerTablesOpenToAnon(query),
+    serverPoliciesWithoutStoreScope(query),
+  ]);
 
   return [
     ...describeAll(noRls, (name) => `${name}: row-level security is not enabled`),
@@ -182,6 +241,14 @@ export const findTenancyViolations = async (query: QueryRows): Promise<string[]>
     ...describeAll(mutable, (name) => `function ${name}: search_path is not pinned`),
     ...describeAll(overlap, (name) => `${name}: more than one permissive policy, merge them`),
     ...describeAll(noIndex, (name) => `${name}: foreign key has no covering index`),
+    ...describeAll(
+      customerOpen,
+      (name) => `${name}: holds customer data but the anon role can read it`,
+    ),
+    ...describeAll(
+      unscoped,
+      (name) => `${name}: a storefront_server policy does not pin the store`,
+    ),
   ];
 };
 

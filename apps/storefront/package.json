@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@dropship/config": "workspace:*",
+    "@dropship/core": "workspace:*",
     "@dropship/db": "workspace:^",
     "@dropship/stores": "workspace:*",
     "@supabase/supabase-js": "^2.117.3",
@@ -22,6 +23,8 @@
     "next": "16.4.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
+    "server-only": "^0.0.1",
+    "stripe": "^23.0.0",
     "zustand": "^5.0.15"
   },
   "devDependencies": {

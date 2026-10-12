@@ -1,3 +1,4 @@
+import { STATIC_PATHS } from "../routing/known-paths";
 import { parseStoreConfig, type StoreConfigInput } from "@dropship/config";
 import { describe, expect, it } from "vitest";
 import { missingBusinessDetails, policiesReadyForLaunch } from "./business";
@@ -58,7 +59,8 @@ describe("faqItems", () => {
   });
 
   it("answers every question and links only to pages that exist", () => {
-    const pages = ["/delivery", "/returns", "/contact", "/privacy", "/terms", "/faq"];
+    // the router's own list of real pages, so a link can never point at one that does not exist
+    const pages = STATIC_PATHS;
 
     for (const item of items) {
       expect(item.answer.length, item.question).toBeGreaterThan(0);

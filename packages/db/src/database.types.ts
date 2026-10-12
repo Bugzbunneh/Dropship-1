@@ -61,6 +61,66 @@ export type Database = {
           },
         ]
       }
+      email_events: {
+        Row: {
+          attempts: number
+          claimed_at: string | null
+          created_at: string
+          id: string
+          kind: string
+          last_error: string | null
+          order_id: string
+          provider_message_id: string | null
+          sent_at: string | null
+          status: string
+          store_id: string
+          to_address: string
+        }
+        Insert: {
+          attempts?: number
+          claimed_at?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          last_error?: string | null
+          order_id: string
+          provider_message_id?: string | null
+          sent_at?: string | null
+          status?: string
+          store_id: string
+          to_address: string
+        }
+        Update: {
+          attempts?: number
+          claimed_at?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          last_error?: string | null
+          order_id?: string
+          provider_message_id?: string | null
+          sent_at?: string | null
+          status?: string
+          store_id?: string
+          to_address?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_events_order_id_store_id_fkey"
+            columns: ["order_id", "store_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id", "store_id"]
+          },
+          {
+            foreignKeyName: "email_events_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       operators: {
         Row: {
           created_at: string
@@ -83,6 +143,198 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "operators_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_events: {
+        Row: {
+          actor: string
+          created_at: string
+          detail: Json
+          from_status: string | null
+          id: string
+          kind: string
+          order_id: string
+          store_id: string
+          stripe_event_id: string | null
+          to_status: string | null
+        }
+        Insert: {
+          actor: string
+          created_at?: string
+          detail?: Json
+          from_status?: string | null
+          id?: string
+          kind: string
+          order_id: string
+          store_id: string
+          stripe_event_id?: string | null
+          to_status?: string | null
+        }
+        Update: {
+          actor?: string
+          created_at?: string
+          detail?: Json
+          from_status?: string | null
+          id?: string
+          kind?: string
+          order_id?: string
+          store_id?: string
+          stripe_event_id?: string | null
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_events_order_id_store_id_fkey"
+            columns: ["order_id", "store_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id", "store_id"]
+          },
+          {
+            foreignKeyName: "order_events_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_items: {
+        Row: {
+          created_at: string
+          id: string
+          image_path: string | null
+          line_total_minor: number
+          order_id: string
+          quantity: number
+          sku: string
+          store_id: string
+          title: string
+          unit_price_minor: number
+          variant_id: string | null
+          variant_title: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_path?: string | null
+          line_total_minor: number
+          order_id: string
+          quantity: number
+          sku: string
+          store_id: string
+          title: string
+          unit_price_minor: number
+          variant_id?: string | null
+          variant_title: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_path?: string | null
+          line_total_minor?: number
+          order_id?: string
+          quantity?: number
+          sku?: string
+          store_id?: string
+          title?: string
+          unit_price_minor?: number
+          variant_id?: string | null
+          variant_title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_store_id_fkey"
+            columns: ["order_id", "store_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id", "store_id"]
+          },
+          {
+            foreignKeyName: "order_items_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_variant_id_store_id_fkey"
+            columns: ["variant_id", "store_id"]
+            isOneToOne: false
+            referencedRelation: "variants"
+            referencedColumns: ["id", "store_id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          created_at: string
+          currency: string
+          customer_email: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          id: string
+          number: string
+          paid_at: string | null
+          shipping_address: Json | null
+          shipping_minor: number
+          status: string
+          store_id: string
+          stripe_payment_intent_id: string | null
+          stripe_session_id: string | null
+          subtotal_minor: number
+          tax_minor: number
+          total_minor: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          id?: string
+          number: string
+          paid_at?: string | null
+          shipping_address?: Json | null
+          shipping_minor: number
+          status?: string
+          store_id: string
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          subtotal_minor: number
+          tax_minor: number
+          total_minor: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          id?: string
+          number?: string
+          paid_at?: string | null
+          shipping_address?: Json | null
+          shipping_minor?: number
+          status?: string
+          store_id?: string
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          subtotal_minor?: number
+          tax_minor?: number
+          total_minor?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
@@ -240,6 +492,57 @@ export type Database = {
           },
         ]
       }
+      shipments: {
+        Row: {
+          carrier: string
+          created_at: string
+          delivered_at: string | null
+          id: string
+          order_id: string
+          shipped_at: string | null
+          store_id: string
+          tracking_number: string | null
+          tracking_url: string | null
+        }
+        Insert: {
+          carrier: string
+          created_at?: string
+          delivered_at?: string | null
+          id?: string
+          order_id: string
+          shipped_at?: string | null
+          store_id: string
+          tracking_number?: string | null
+          tracking_url?: string | null
+        }
+        Update: {
+          carrier?: string
+          created_at?: string
+          delivered_at?: string | null
+          id?: string
+          order_id?: string
+          shipped_at?: string | null
+          store_id?: string
+          tracking_number?: string | null
+          tracking_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipments_order_id_store_id_fkey"
+            columns: ["order_id", "store_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id", "store_id"]
+          },
+          {
+            foreignKeyName: "shipments_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stores: {
         Row: {
           created_at: string
@@ -263,6 +566,41 @@ export type Database = {
           slug?: string
         }
         Relationships: []
+      }
+      stripe_events: {
+        Row: {
+          id: string
+          order_id: string | null
+          outcome: string
+          received_at: string
+          store_id: string
+          type: string
+        }
+        Insert: {
+          id: string
+          order_id?: string | null
+          outcome: string
+          received_at?: string
+          store_id: string
+          type: string
+        }
+        Update: {
+          id?: string
+          order_id?: string | null
+          outcome?: string
+          received_at?: string
+          store_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stripe_events_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       variants: {
         Row: {
@@ -329,7 +667,32 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      apply_checkout_event: {
+        Args: {
+          p_amount_total: number
+          p_currency: string
+          p_customer: Json
+          p_event_id: string
+          p_event_type: string
+          p_order_id: string
+          p_payment_intent_id: string
+          p_payment_status: string
+          p_session_id: string
+        }
+        Returns: string
+      }
+      create_order: {
+        Args: {
+          p_currency: string
+          p_items: Json
+          p_number: string
+          p_shipping_minor: number
+          p_subtotal_minor: number
+          p_tax_minor: number
+          p_total_minor: number
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

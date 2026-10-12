@@ -2,13 +2,15 @@
 // are never stored with it: they are looked up fresh from the catalog every time (see actions.ts),
 // so a stale or edited cart can never fix a price. These are the pure rules for changing the list.
 
+import { MAX_CART_LINES, MAX_LINE_QUANTITY } from "@dropship/core";
+
 export type CartLine = {
   variantId: string;
   quantity: number;
 };
 
-export const MAX_LINE_QUANTITY = 10;
-export const MAX_CART_LINES = 40;
+// The limits live in core, because checkout enforces the same ones on the server.
+export { MAX_CART_LINES, MAX_LINE_QUANTITY };
 
 // Variant ids are UUIDs from the database, or slugs like "fx-var-PP-RDL" in the offline catalog.
 const VARIANT_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;

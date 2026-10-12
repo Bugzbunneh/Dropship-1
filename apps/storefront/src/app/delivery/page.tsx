@@ -56,7 +56,9 @@ const DeliveryPage = async () => {
       <h2>Tracking your order</h2>
       <p>
         When your order is dispatched we’ll email you with tracking details, so you can see where it
-        is. If you haven’t heard from us, check your spam folder, then get in touch.
+        is. You can also check on any order at any time, with no account needed, using your order
+        number and email address: <Link href="/orders/lookup">find my order</Link>. If you haven’t
+        heard from us, check your spam folder, then get in touch.
       </p>
 
       <h2>If your order is late, damaged or wrong</h2>

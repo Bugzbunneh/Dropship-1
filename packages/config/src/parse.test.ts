@@ -51,6 +51,7 @@ describe("parseStoreConfig", () => {
     expect(config.theme.radius).toBe("md");
     expect(config.navigation).toEqual([]);
     expect(config.shipping).toEqual({ flatRateMinor: 399, freeThresholdMinor: 3500 });
+    expect(config.tax).toEqual({ vatRegistered: false, vatRateBps: 2000 });
     expect(config.business).toEqual({});
   });
 

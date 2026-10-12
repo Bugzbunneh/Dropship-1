@@ -28,6 +28,14 @@ export const faqItems = (config: FaqConfig): FaqItem[] => {
       link: { href: "/delivery", label: "Delivery details" },
     },
     {
+      question: "Where is my order?",
+      answer: [
+        "You don’t need an account. Enter your order number and the email address you used at checkout, and you’ll see exactly where your order is, with tracking once it has been sent.",
+        "Your order number is in your confirmation email.",
+      ],
+      link: { href: "/orders/lookup", label: "Find my order" },
+    },
+    {
       question: "How much is delivery?",
       answer: [
         `Delivery costs ${money(shipping.flatRateMinor)}, and it’s free when your basket comes to ${money(shipping.freeThresholdMinor)} or more. You’ll see the exact cost before you pay.`,

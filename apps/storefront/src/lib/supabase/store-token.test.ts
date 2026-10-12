@@ -1,6 +1,11 @@
 import { jwtVerify } from "jose";
 import { describe, expect, it } from "vitest";
-import { mintStoreToken, STORE_TOKEN_LIFETIME_SECONDS } from "./store-token";
+import {
+  mintServerToken,
+  mintStoreToken,
+  SERVER_TOKEN_LIFETIME_SECONDS,
+  STORE_TOKEN_LIFETIME_SECONDS,
+} from "./store-token";
 
 const signingKey = "unit-test-signing-key-that-is-long-enough-for-hs256-0123456789";
 const storeId = "00000000-0000-4000-8000-0000000000a0";
@@ -64,5 +69,33 @@ describe("mintStoreToken", () => {
     const { payload } = await verify(token, signingKey);
 
     expect(Object.keys(payload).sort()).toEqual(["exp", "iat", "iss", "role", "store_id"]);
+  });
+});
+
+describe("mintServerToken", () => {
+  it("acts as the storefront_server role for the one store, and nothing more", async () => {
+    const token = await mintServerToken({ storeId, signingKey, now });
+
+    const { payload } = await verify(token, signingKey);
+
+    expect(payload["role"]).toBe("storefront_server");
+    expect(payload["store_id"]).toBe(storeId);
+    expect(Object.keys(payload).sort()).toEqual(["exp", "iat", "iss", "role", "store_id"]);
+  });
+
+  it("lives for a minute, much shorter than the read-only token", async () => {
+    const token = await mintServerToken({ storeId, signingKey, now });
+
+    const { payload } = await verify(token, signingKey);
+
+    expect((payload.exp ?? 0) - (payload.iat ?? 0)).toBe(SERVER_TOKEN_LIFETIME_SECONDS);
+    expect(SERVER_TOKEN_LIFETIME_SECONDS).toBeLessThan(STORE_TOKEN_LIFETIME_SECONDS);
+  });
+
+  it("is never the same token as the read-only one", async () => {
+    const readOnly = await mintStoreToken({ storeId, signingKey, now });
+    const server = await mintServerToken({ storeId, signingKey, now });
+
+    expect(server).not.toBe(readOnly);
   });
 });

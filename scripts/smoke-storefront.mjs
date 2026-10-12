@@ -1,6 +1,6 @@
 // Starts the built storefront and checks the things that must hold before a deployment is trusted:
 // the store config loads, the theme (base and per-pet) reaches the page, unknown addresses answer
-// 404, the revalidation endpoint is locked down, and expiring a cache tag really refreshes a
+// 404, the order pages and payment endpoints are locked down, the revalidation endpoint is too, and expiring a cache tag really refreshes a
 // cached value (the round trip that price and stock syncs depend on). It serves the offline demo
 // catalog, so it needs no database or credentials. Run `pnpm build` first. Re-run after every
 // Next.js upgrade (README risk R1).
@@ -85,6 +85,19 @@ const runChecks = async () => {
     unknownProduct.status === 404,
     String(unknownProduct.status),
   );
+
+  const lookup = await fetch(`${baseUrl}/orders/lookup`);
+  check("the order lookup page responds 200", lookup.status === 200, String(lookup.status));
+
+  // Orders and payments: nothing may happen without Stripe's signature or the deployment's secret.
+  const unsigned = await fetch(`${baseUrl}/api/stripe/webhook`, { method: "POST", body: "{}" });
+  check(
+    "the payment webhook refuses an unsigned request",
+    [400, 503].includes(unsigned.status),
+    String(unsigned.status),
+  );
+  const sweepWithoutSecret = await fetch(`${baseUrl}/api/emails/send`, { method: "POST" });
+  check("the email sweep refuses a request with no secret", sweepWithoutSecret.status === 401);
 
   const noSecret = await postRevalidate({}, { tags: ["probe:revalidation"] });
   check("revalidate rejects a request with no secret", noSecret.status === 401);

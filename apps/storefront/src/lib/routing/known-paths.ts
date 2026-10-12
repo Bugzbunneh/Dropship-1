@@ -14,6 +14,8 @@ export type RouteKnowledge = {
 export const STATIC_PATHS: readonly string[] = [
   "/",
   "/cart",
+  "/checkout/success",
+  "/orders/lookup",
   "/search",
   "/delivery",
   "/returns",
@@ -53,6 +55,11 @@ export const isKnownPath = (pathname: string, knowledge: RouteKnowledge): boolea
 
   if (STATIC_PATHS.includes(normalised)) {
     return true;
+  }
+  // Order pages are addressed by order number, which the page itself checks against the database
+  // (and against whoever is asking), so the proxy does not need to know them.
+  if (first === "orders") {
+    return second !== undefined && rest.length === 0;
   }
   if (first === "products") {
     return second !== undefined && rest.length === 0 && knowledge.productSlugs.includes(second);

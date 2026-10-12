@@ -8,7 +8,20 @@ import { expect, test, type Page } from "@playwright/test";
 
 const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 
+// Colours are measured as they are on screen, so a scan during a fade or slide would judge a
+// half-transparent element. Wait for animations that end (spinners and skeletons never do).
+const settleAnimations = (page: Page): Promise<unknown> =>
+  page.evaluate(() =>
+    Promise.all(
+      document
+        .getAnimations()
+        .filter((animation) => animation.effect?.getComputedTiming().iterations !== Infinity)
+        .map((animation) => animation.finished.catch(() => undefined)),
+    ),
+  );
+
 const violationsOf = async (page: Page): Promise<string[]> => {
+  await settleAnimations(page);
   const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
   return results.violations.map((violation) => {
     const targets = violation.nodes
@@ -30,6 +43,8 @@ const pages = [
   "/search?q=bed",
   "/search?q=zzzqqq",
   "/cart",
+  "/orders/lookup",
+  "/checkout/success",
   "/delivery",
   "/returns",
   "/faq",
