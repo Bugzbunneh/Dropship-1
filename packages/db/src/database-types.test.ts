@@ -12,13 +12,26 @@ describe("generated database types", () => {
       store_id: "00000000-0000-4000-8000-0000000000a0",
       slug: "dog-bed",
       title: "Dog bed",
+      department: "dogs",
     };
 
     // @ts-expect-error store_id is required
-    const missingStore: Tables["products"]["Insert"] = { slug: "dog-bed", title: "Dog bed" };
+    const missingStore: Tables["products"]["Insert"] = {
+      slug: "dog-bed",
+      title: "Dog bed",
+      department: "dogs",
+    };
+
+    // @ts-expect-error a product must belong to a department
+    const missingDepartment: Tables["products"]["Insert"] = {
+      store_id: "00000000-0000-4000-8000-0000000000a0",
+      slug: "dog-bed",
+      title: "Dog bed",
+    };
 
     expect(product.store_id).toBeDefined();
     expect(missingStore.store_id).toBeUndefined();
+    expect(missingDepartment.store_id).toBeDefined();
   });
 
   it("store prices as integers in minor units", () => {
@@ -29,7 +42,9 @@ describe("generated database types", () => {
       sku: "SKU-1",
       title: "Medium",
       price_minor: 2999,
+      compare_at_price_minor: null,
       currency: "GBP",
+      options: {},
       is_available: true,
       position: 0,
       created_at: "2026-10-11T00:00:00Z",

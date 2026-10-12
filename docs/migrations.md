@@ -16,6 +16,9 @@ is needed either.
    - apply the standard protections with `select app.enable_store_rls('public.<table>', '<visible to the storefront>')`,
    - cost and margin data never goes on a table the storefront can read (row-level security hides
      rows, not columns),
+   - tables that hold customers' details (orders and the like) use `app.enable_private_store_rls`
+     instead, so the storefront's `anon` role gets nothing, and the server's `storefront_server`
+     role is granted only what it needs, each grant paired with a policy that pins the token's store,
    - money is an integer in minor units with a currency code,
    - every function pins `set search_path = ''`.
 3. **Add seed rows.** Put rows for _both_ stores in `packages/db/src/testing/seed.ts`. The tests

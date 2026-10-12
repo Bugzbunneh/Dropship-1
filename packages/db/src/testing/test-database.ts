@@ -38,6 +38,7 @@ export const queryRowsOf =
 export type Session =
   | { role: "anon"; storeId?: string }
   | { role: "authenticated"; userId: string; storeId?: string }
+  | { role: "storefront_server"; storeId?: string }
   | { role: "service_role" };
 
 const claimsFor = (session: Session): Record<string, string> => {
@@ -45,6 +46,9 @@ const claimsFor = (session: Session): Record<string, string> => {
     return { role: "service_role" };
   }
   const storeClaim = session.storeId ? { store_id: session.storeId } : {};
+  if (session.role === "storefront_server") {
+    return { role: "storefront_server", ...storeClaim };
+  }
   if (session.role === "authenticated") {
     return { role: "authenticated", sub: session.userId, ...storeClaim };
   }

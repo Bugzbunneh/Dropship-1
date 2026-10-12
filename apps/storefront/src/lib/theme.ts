@@ -1,18 +1,18 @@
 import type { StoreConfig } from "@dropship/config";
+import { fontStackFor } from "./font-stacks";
 
 type Theme = StoreConfig["theme"];
+type Department = StoreConfig["departments"][number];
 
 const radiusByToken: Record<Theme["radius"], string> = {
   none: "0",
-  sm: "0.25rem",
-  md: "0.5rem",
+  sm: "0.375rem",
+  md: "0.625rem",
   lg: "1rem",
 };
 
-const fontStack = (family: string): string => `"${family}", system-ui, sans-serif`;
-
-// CSS custom properties for one store's theme. Tailwind reads them through the @theme block in
-// globals.css, so components use ordinary utilities such as bg-primary.
+// CSS custom properties for a store's neutral theme. Tailwind reads them through the @theme block
+// in globals.css, so components use ordinary utilities such as bg-primary or text-emphasis.
 export const themeToCssVariables = (theme: Theme): Record<string, string> => {
   const { colours, fonts, radius } = theme;
 
@@ -23,8 +23,31 @@ export const themeToCssVariables = (theme: Theme): Record<string, string> => {
     "--store-primary-foreground": colours.primaryForeground,
     "--store-accent": colours.accent,
     "--store-muted": colours.muted,
-    "--store-font-heading": fontStack(fonts.heading),
-    "--store-font-body": fontStack(fonts.body),
+    "--store-surface": colours.surface,
+    "--store-emphasis": colours.emphasis,
+    "--store-sale": colours.sale,
+    "--store-font-heading": fontStackFor(fonts.heading),
+    "--store-font-body": fontStackFor(fonts.body),
     "--store-radius": radiusByToken[radius],
   };
 };
+
+// A department wraps its pages in these, which override only the colours that give a section its
+// character. Nested custom properties win over the page-level ones, so no component needs to know
+// which department it is in.
+export const departmentToCssVariables = (department: Department): Record<string, string> => {
+  const { colours } = department;
+
+  return {
+    "--store-primary": colours.primary,
+    "--store-primary-foreground": colours.primaryForeground,
+    "--store-accent": colours.accent,
+    "--store-surface": colours.surface,
+    "--store-emphasis": colours.emphasis,
+  };
+};
+
+export const findDepartment = (
+  departments: StoreConfig["departments"],
+  slug: string | null | undefined,
+): Department | undefined => departments.find((department) => department.slug === slug);

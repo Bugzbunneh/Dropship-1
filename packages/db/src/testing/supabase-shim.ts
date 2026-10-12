@@ -5,6 +5,8 @@ export const supabaseShimSql = `
 create role anon nologin noinherit;
 create role authenticated nologin noinherit;
 create role service_role nologin noinherit bypassrls;
+-- the login role PostgREST connects as, then switches from to the role named in the token
+create role authenticator noinherit login;
 
 create schema auth;
 create table auth.users (id uuid primary key);

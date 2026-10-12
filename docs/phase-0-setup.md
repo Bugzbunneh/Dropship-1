@@ -2,12 +2,14 @@
 
 ## Working locally
 
-Prerequisites: Node 24 and pnpm 9 (`corepack enable` picks the pinned version).
+Prerequisites: Node 24 and pnpm 9 (`corepack enable` picks the pinned version). Phase 1 added
+the shop itself, the demo catalog and browser tests: see `docs/storefront.md`. Without
+`CATALOG_SOURCE=fixtures` the build reads the live database, so it needs the credentials below.
 
 ```
 pnpm install
 pnpm check                          # typecheck, lint, format check, all tests
-STORE=pet-pilot pnpm build          # on Windows PowerShell: $env:STORE = "pet-pilot"; pnpm build
+STORE=pet-pilot CATALOG_SOURCE=fixtures pnpm build   # PowerShell: set $env:STORE and $env:CATALOG_SOURCE first
 pnpm smoke                          # boots the built storefront and checks it
 pnpm dev --filter @dropship/storefront   # or: cd apps/storefront && pnpm dev
 ```

@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
 // Live tests call real services (the hosted Supabase project and Stripe's test mode) with the
@@ -17,6 +18,14 @@ loadIfPresent(".env.local");
 loadIfPresent(".env");
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      // see vitest.config.ts
+      "server-only": fileURLToPath(new URL("./src/test/server-only.ts", import.meta.url)),
+      // the app's own import alias
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
+    },
+  },
   test: {
     include: ["src/**/*.live.test.ts"],
     testTimeout: 30_000,

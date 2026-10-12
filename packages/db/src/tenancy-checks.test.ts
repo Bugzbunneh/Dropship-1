@@ -122,6 +122,37 @@ describe("findTenancyViolations", () => {
     expect(violations.filter((line) => line.startsWith("covered."))).toEqual([]);
   });
 
+  it("flags customer data that the anonymous storefront role can read", async () => {
+    await db.exec("grant select on public.orders to anon");
+
+    const violations = await findTenancyViolations(queryRowsOf(db));
+    await db.exec("revoke select on public.orders from anon");
+
+    expect(violations).toContain("orders: holds customer data but the anon role can read it");
+  });
+
+  it("flags a column-level read of customer data by the anonymous role too", async () => {
+    await db.exec("grant select (customer_email) on public.orders to anon");
+
+    const violations = await findTenancyViolations(queryRowsOf(db));
+    await db.exec("revoke select (customer_email) on public.orders from anon");
+
+    expect(violations).toContain("orders: holds customer data but the anon role can read it");
+  });
+
+  it("flags a storefront_server policy that does not pin the token's store", async () => {
+    await db.exec(
+      "create policy loose_read on public.shipments for select to storefront_server using (true)",
+    );
+
+    const violations = await findTenancyViolations(queryRowsOf(db));
+    await db.exec("drop policy loose_read on public.shipments");
+
+    expect(violations).toContain(
+      "shipments (loose_read): a storefront_server policy does not pin the store",
+    );
+  });
+
   it("is clean again once the bad objects are removed", async () => {
     const violations = await findTenancyViolations(queryRowsOf(db));
 
