@@ -118,7 +118,7 @@ Secrets (Supabase keys, Stripe keys, supplier credentials) live in each deployme
 
 ### Store config
 
-Each store declares, in typed and validated config: name and domain, currency, locale and shipping countries, theme tokens, navigation and collections, supplier sources, pricing rules, policy text, analytics IDs, email sender, and Stripe key references.
+Each store declares, in typed and validated config: name and domain, currency, locale and shipping countries, theme colours and fonts, departments (for the pilot, dogs and cats, each with its own colours), home page copy, footer navigation, delivery charges, business details, supplier sources, pricing rules, policy settings, analytics IDs, email sender, and Stripe key references. Product and collection content lives in the database, not in config.
 
 ### Core data model (sketch)
 
@@ -169,13 +169,13 @@ Each phase ends with an exit criterion, so we know when it is actually done. The
 **Exit:** an empty storefront boots from a store config in CI and deploys to staging.
 
 ### Phase 1: Storefront
-- [ ] Layout and theming from store config, responsive and mobile-first
-- [ ] Collections, product listing, product detail (variants and images), search and filters
-- [ ] Persistent cart and shipping estimates
-- [ ] SEO: metadata, Product JSON-LD, sitemap, robots, Open Graph, incremental static regeneration for product pages, optimised images
-- [ ] Policy, FAQ and contact pages, written for UK consumer law
+- [x] Layout and theming from store config, responsive and mobile-first. Dogs and cats each have their own colours, and tests hold every colour pairing to WCAG AA
+- [x] Collections, product listing, product detail (variants and images), search and filters
+- [x] Persistent cart and shipping estimates: delivery cost, progress toward free delivery, and a delivery date counted in working days. Checkout itself is Phase 2
+- [x] SEO: metadata, Product JSON-LD, sitemap, robots, Open Graph, cached and revalidated pages, real 404s, optimised images
+- [x] Policy, FAQ and contact pages, written for UK consumer law (drafts until reviewed, see R10)
 
-**Exit:** a seeded catalog can be browsed on a phone, with good Core Web Vitals.
+**Exit:** a seeded catalog can be browsed on a phone, with good Core Web Vitals. **Met in lab tests on 2026-10-12**: with real slow-4G throttling, largest contentful paint is 1.8 to 1.9 s, layout shift is 0 and blocking time is 30 ms or less, and 177 browser tests pass on a desktop and a phone. Lighthouse's default simulation is more pessimistic and puts LCP at 2.8 to 3.2 s, so the real answer comes from visitors' data once the site is deployed (R16). Details and how to run everything: `docs/storefront.md`.
 
 ### Phase 2: Checkout and orders
 - [ ] Stripe Checkout and an idempotent webhook that creates orders
@@ -263,9 +263,14 @@ Known trade-offs of the choices above. None block progress. Each has a trigger f
 | R7 | **Shared backend means a shared blast radius** | A database incident, runaway job or one very busy store can affect every store, and one Supabase project has finite connections and compute. Splitting a store out later takes work | Backups and point-in-time recovery, per-store job limits, monitoring, scaling compute as load grows (a Pro project is about $25 a month, checked 2026-10-11). `store_id` on every table keeps a split possible | At the second and third stores, and if one store dominates load |
 | R8 | **Margin floor could mass-reprice or hide the catalog** | A bad supplier feed could wipe out or distort prices across the store | Per-run change limit, approval above a threshold, alerts on large changes | Phase 3, when the sync jobs are built |
 | R9 | **5 working day delivery narrows suppliers** | Only UK or nearby EU stock qualifies, which means a smaller catalog and possibly thinner margins | Treat the limit as an experiment, measure delivery times per supplier, relax or tighten using real data | Phase 3 supplier selection, and after the first 50 orders |
-| R10 | **UK compliance** | VAT registration, consumer rights, UK GDPR/PECR and pet-product rules all apply | Accountant and solicitor before launch, Stripe Tax, policy templates | Before the pilot goes live |
+| R10 | **UK compliance** | VAT registration, consumer rights, UK GDPR/PECR and pet-product rules all apply | Accountant and solicitor before launch, Stripe Tax, policy templates. The delivery, returns, privacy and terms pages are drafts written to UK law: they show a prominent notice until `policies.reviewed` is true and the business details (legal name, address, email) are filled in, so they cannot go live unreviewed | Before the pilot goes live |
 | R11 | **Deployment model: one deployment per store, or one for all** | Separate deployments isolate rollbacks but multiply builds, projects and settings. One deployment routed by hostname is simpler to run but a bad release hits every store | Start with a deployment per store, scripted in `create-store`. Revisit if the number of stores makes this a chore | At the third store |
 | R12 | **The storefront must sign its own database token** | Database isolation relies on a JWT carrying `store_id`, signed by the storefront server. Proven on 2026-10-11 with the project's legacy JWT secret: the live API accepts the token, scopes it to one store, and refuses wrong-key, expired and forged tokens. The risk that remains is Supabase retiring legacy keys in favour of asymmetric signing keys | Forward path: generate our own signing key (`supabase gen signing-key`) and import it in the dashboard, so the server keeps a key it can sign with. Only `mintStoreToken` and `app.current_store_id()` depend on how the claim is delivered. `pnpm check:live` re-proves it | When Supabase announces legacy key retirement, and whenever `pnpm check:live` fails |
+| R13 | **The whole catalog is held in memory** | Listing, search and filters run over a cached copy of the store's catalog. That suits a few thousand products. Beyond that, memory use, the first load after a refresh, and refreshing the whole copy on every price sync all get slower | Every query is a pure function over the snapshot behind one module, so it can move into SQL (Postgres full-text and trigram search, same cache tags) without touching the pages. Measure the snapshot's size and load time after the first real import | When the catalog nears 2,000 products, when the first load after a refresh is noticeably slow, and at the Phase 3 import |
+| R14 | **Delivery dates rest on a hand-kept bank holiday list** | The date promised on product pages and in the cart skips weekends and bank holidays. The embedded list covers England and Wales only, for 2026 and 2027, and Scotland and Northern Ireland differ. A stale list would promise a day when nothing moves | A test fails when the list runs out (`BANK_HOLIDAYS_COVERED_UNTIL`), prompting a refresh from gov.uk. The date is worded as an estimate | Each December, before delivering differently to Scotland or Northern Ireland, and when real courier cut-off times are known (Phase 3) |
+| R15 | **Real 404s depend on a proxy and a short-lived address list** | `src/proxy.ts` answers unknown addresses with 404 from a list kept in each server instance's memory (refreshed every minute, or every 5 seconds when an address looks unknown). Each instance therefore reads the catalog on its own, and if the catalog can't be read the proxy lets everything through, so soft 404s return. `next start -H <host>` makes its rewrite fail with a 500 (found 2026-10-12) | Smoke and browser tests cover 404 status. Start with the default host. Fail open by design, because a database blip must never turn real pages into 404s | On first deployment to Vercel, at each Next.js upgrade, and if we self-host |
+| R16 | **Core Web Vitals are only proven in the lab** | Lighthouse's simulated mobile run puts LCP at 2.8 to 3.2 s (above the 2.5 s "good" line) while a real throttled browser measures 1.8 to 1.9 s. About 160 KB of script is mostly the framework. Field data from real visitors is what Google uses | Measure the deployed site with PageSpeed Insights and Search Console. If field LCP is above 2.5 s, trim script (lazy-load the cart drawer and search, inline the stylesheet) before anything else | A few weeks after the first public deployment, and after each large UI change |
+| R17 | **Demo products and generated pictures stand in for a real catalog** | The 31 demo products and their SVG pictures exist so the store can be built and tested. If they reach a live store, customers would see products that cannot be bought | Every demo product is tagged `demo`. `pnpm store:seed pet-pilot --remove` removes them. The footer says "Offline demo catalog" when serving fixtures. Real photos need supplier or licensed rights | Before go-live, and at the Phase 3 catalog import |
 
 ## Open decisions
 
@@ -281,6 +286,9 @@ Known trade-offs of the choices above. None block progress. Each has a trigger f
 - **Free Supabase plan during development** (2026-10-11), project `Dropship-1` in London (eu-west-2). Migrations are managed through the CLI, see `docs/migrations.md`. Free projects pause after a week of inactivity and have no place holding real customers or orders, so the project moves to Pro before the pilot goes live (R7).
 - **Deployment to Vercel is deferred** (2026-10-11). Development runs locally until then.
 - **No deadlines** (2026-10-11). Correctness over speed, and the roadmap order stands.
+- **One colour per pet** (2026-10-12). Dogs are warm amber, cats are teal, on a warm neutral base, so a visitor always knows which pet's section they are in. Colours are held to WCAG AA by tests.
+- **Cart before checkout** (2026-10-12). The cart, delivery cost and delivery date ship in Phase 1; the checkout button says "coming soon" until Phase 2.
+- **Catalog read as one cached snapshot** (2026-10-12), with queries as pure functions over it. See R13.
 
 ### Still open
 
